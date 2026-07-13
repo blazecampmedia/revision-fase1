@@ -1,0 +1,507 @@
+<title>Fase 1 — Revisión de mensajes</title>
+
+<style>
+  :root {
+    color-scheme: light dark;
+    --ground: #FCFAF8;
+    --card: #FFFFFF;
+    --ink: #241C22;
+    --muted: #7C6B74;
+    --line: #E8DFE1;
+    --accent: #0F6E60;
+    --accent-soft: #E2F0EC;
+    --pending: #A8681A;
+    --pending-soft: #FBEEDC;
+    --done: #0F6E60;
+    --shadow: 0 1px 2px rgba(36,28,34,.05), 0 4px 14px rgba(36,28,34,.04);
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground: #16121A;
+      --card: #201A24;
+      --ink: #F1EAEE;
+      --muted: #A2919C;
+      --line: #332B38;
+      --accent: #52C4AF;
+      --accent-soft: #1B3B37;
+      --pending: #E0A455;
+      --pending-soft: #3A2C17;
+      --done: #52C4AF;
+      --shadow: none;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #16121A;
+    --card: #201A24;
+    --ink: #F1EAEE;
+    --muted: #A2919C;
+    --line: #332B38;
+    --accent: #52C4AF;
+    --accent-soft: #1B3B37;
+    --pending: #E0A455;
+    --pending-soft: #3A2C17;
+    --done: #52C4AF;
+    --shadow: none;
+  }
+  :root[data-theme="light"] {
+    --ground: #FCFAF8;
+    --card: #FFFFFF;
+    --ink: #241C22;
+    --muted: #7C6B74;
+    --line: #E8DFE1;
+    --accent: #0F6E60;
+    --accent-soft: #E2F0EC;
+    --pending: #A8681A;
+    --pending-soft: #FBEEDC;
+    --done: #0F6E60;
+    --shadow: 0 1px 2px rgba(36,28,34,.05), 0 4px 14px rgba(36,28,34,.04);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 17px;
+    line-height: 1.55;
+    -webkit-text-size-adjust: 100%;
+  }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 0 18px 140px; }
+
+  /* ── barra de progreso, siempre visible ── */
+  .bar {
+    position: sticky; top: 0; z-index: 10;
+    background: color-mix(in srgb, var(--ground) 92%, transparent);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line);
+    padding: 10px 18px 9px;
+  }
+  .bar-inner { max-width: 640px; margin: 0 auto; }
+  .bar-row {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+    font-size: 14px; color: var(--muted);
+  }
+  .bar-row b { color: var(--ink); font-variant-numeric: tabular-nums; }
+  .track { height: 5px; border-radius: 3px; background: var(--line); margin-top: 7px; overflow: hidden; }
+  .fill { height: 100%; width: 0; background: var(--accent); border-radius: 3px; transition: width .3s ease; }
+
+  /* ── encabezado ── */
+  header { padding: 30px 0 8px; }
+  h1 {
+    font-family: var(--serif); font-weight: 600; font-size: 30px; line-height: 1.15;
+    margin: 0 0 12px; text-wrap: balance; letter-spacing: -.01em;
+  }
+  .intro { color: var(--muted); font-size: 16px; margin: 0 0 18px; }
+  .intro strong { color: var(--ink); font-weight: 600; }
+  .steps {
+    background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+    padding: 16px 18px; box-shadow: var(--shadow); font-size: 15.5px;
+  }
+  .steps ol { margin: 0; padding-left: 20px; display: grid; gap: 8px; }
+  .steps li::marker { color: var(--accent); font-weight: 700; }
+
+  /* ── semana ── */
+  .week {
+    font-family: var(--serif); font-size: 13px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: .12em; color: var(--accent);
+    padding: 34px 0 10px; display: flex; align-items: center; gap: 10px;
+  }
+  .week::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+
+  /* ── tarjeta ── */
+  .card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+    padding: 16px; margin-bottom: 14px; box-shadow: var(--shadow);
+    display: grid; gap: 12px;
+  }
+  .card.ok { border-color: color-mix(in srgb, var(--done) 45%, var(--line)); }
+  .meta {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    font-size: 13px; color: var(--muted);
+  }
+  .day {
+    font-family: var(--serif); font-weight: 600; font-size: 13.5px; color: var(--ink);
+    letter-spacing: .01em;
+  }
+  .dot { width: 3px; height: 3px; border-radius: 50%; background: var(--muted); opacity: .5; }
+  .tag {
+    font-size: 12px; font-weight: 600; padding: 2px 9px; border-radius: 999px;
+    background: var(--pending-soft); color: var(--pending);
+  }
+  h2 {
+    font-family: var(--serif); font-size: 20px; font-weight: 600; margin: 0;
+    line-height: 1.25; text-wrap: balance;
+  }
+
+  textarea {
+    width: 100%; border: 1px solid var(--line); border-radius: 12px;
+    background: var(--ground); color: var(--ink);
+    font-family: var(--sans); font-size: 16px; line-height: 1.55;
+    padding: 12px 13px; resize: none; overflow: hidden;
+  }
+  textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; border-color: transparent; }
+  .cuerpo { min-height: 90px; }
+  .comentario { font-size: 15px; }
+  .label {
+    font-size: 12.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 6px; display: block;
+  }
+  .edited { color: var(--pending); font-size: 13px; font-weight: 600; }
+
+  /* ── adjunto ── */
+  .adjunto {
+    border: 1px dashed var(--line); border-radius: 12px; padding: 12px 13px;
+    display: grid; gap: 10px;
+  }
+  .adjunto-txt { font-size: 14.5px; color: var(--muted); }
+  .adjunto-txt b { color: var(--ink); font-weight: 600; }
+  .subir {
+    display: block; text-align: center; text-decoration: none;
+    background: var(--accent-soft); color: var(--accent);
+    font-weight: 600; font-size: 15.5px; padding: 12px; border-radius: 10px;
+    border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+  }
+  .subir[aria-disabled="true"] { opacity: .55; pointer-events: none; }
+  .subir:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* ── botones ── */
+  .aprobar {
+    width: 100%; border: 1px solid var(--line); border-radius: 12px;
+    background: var(--ground); color: var(--muted);
+    font-family: var(--sans); font-size: 16px; font-weight: 600;
+    padding: 13px; cursor: pointer;
+  }
+  .aprobar[aria-pressed="true"] {
+    background: var(--accent); border-color: var(--accent); color: #fff;
+  }
+  :root[data-theme="dark"] .aprobar[aria-pressed="true"],
+  .aprobar[aria-pressed="true"] { color: #fff; }
+  @media (prefers-color-scheme: dark) {
+    .aprobar[aria-pressed="true"] { color: #12211F; }
+  }
+  :root[data-theme="light"] .aprobar[aria-pressed="true"] { color: #fff; }
+  .aprobar:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* ── enviar ── */
+  .enviar-zona {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
+    background: color-mix(in srgb, var(--ground) 94%, transparent);
+    backdrop-filter: blur(10px);
+    border-top: 1px solid var(--line);
+    padding: 12px 18px calc(12px + env(safe-area-inset-bottom));
+  }
+  .enviar {
+    display: block; width: 100%; max-width: 640px; margin: 0 auto;
+    background: var(--accent); color: #fff; border: none; border-radius: 13px;
+    font-family: var(--sans); font-size: 17px; font-weight: 600;
+    padding: 15px; cursor: pointer;
+  }
+  @media (prefers-color-scheme: dark) { .enviar { color: #12211F; } }
+  :root[data-theme="light"] .enviar { color: #fff; }
+  :root[data-theme="dark"] .enviar { color: #12211F; }
+  .enviar:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  .aviso { text-align: center; font-size: 13.5px; color: var(--accent); margin-top: 8px; min-height: 18px; }
+
+  .salida {
+    display: none; margin-top: 22px; background: var(--card);
+    border: 1px solid var(--line); border-radius: 14px; padding: 14px;
+  }
+  .salida textarea { min-height: 220px; font-family: ui-monospace, Menlo, monospace; font-size: 13px; }
+
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="bar">
+  <div class="bar-inner">
+    <div class="bar-row">
+      <span><b id="n-ok">0</b> de <b id="n-total">0</b> revisados</span>
+      <span id="n-falta"></span>
+    </div>
+    <div class="track"><div class="fill" id="fill"></div></div>
+  </div>
+</div>
+
+<div class="wrap">
+  <header>
+    <h1>Los mensajes de Fase 1, uno por uno</h1>
+    <p class="intro">Majo y Zory: estos son <strong>todos</strong> los mensajes privados que le llegan a una clienta durante las 6 semanas. Antes de automatizarlos, necesitamos que queden <strong>tal cual se van a enviar</strong>.</p>
+    <div class="steps">
+      <ol>
+        <li>Lee el mensaje. Si está bien, toca <strong>Está bien</strong>.</li>
+        <li>Si hay que cambiarle algo, <strong>edítalo ahí mismo</strong> y luego apruébalo.</li>
+        <li>Donde diga “subir la lámina”, toca el botón y súbela a la carpeta que se abre.</li>
+        <li>Al terminar, toca <strong>Enviarle todo a Jhon</strong>. Puedes cerrar y volver cuando quieras: lo que hagas se guarda.</li>
+      </ol>
+    </div>
+  </header>
+
+  <main id="lista"></main>
+
+  <div class="salida" id="salida">
+    <span class="label">Copia esto y mándaselo a Jhon</span>
+    <textarea id="salida-txt" readonly></textarea>
+  </div>
+</div>
+
+<div class="enviar-zona">
+  <button class="enviar" id="btn-enviar">Enviarle todo a Jhon</button>
+  <div class="aviso" id="aviso"></div>
+</div>
+
+<script>
+/* ══ Carpetas de Drive ═══════════════════════════════════════════════════════
+   Pegar aquí lo que imprime `crear-carpetas-drive.gs`. Mientras esté vacío,
+   los botones de subir imagen salen desactivados. */
+const CARPETAS = {
+  "S0-D6-1": "https://drive.google.com/drive/folders/1l_R40B00jt-Fx4W7Bk81Mr7_9U59RRem",
+  "S0-D6-2": "https://drive.google.com/drive/folders/1rT3TUKpSWyi_-1egt0li-dnmuCgkClsx",
+  "S0-D6-3": "https://drive.google.com/drive/folders/1VKG2soFIDdEWf7GtZpK0MDax1kKObyRl",
+  "S1-D0-1": "https://drive.google.com/drive/folders/19yMvdHunBM0nv2Y6FyzPRmavnPEybh8z",
+  "S1-D1-1": "https://drive.google.com/drive/folders/11ffBaiHrhUbCoucI-aidBmcdLySTuLiQ",
+  "S1-D2-1": "https://drive.google.com/drive/folders/1bmUs7kp9B3Y4b1VS5je8uKXRFEViDjB0",
+  "S1-D2-2": "https://drive.google.com/drive/folders/1LSYjl-Y5W-Lx4mmuOEiXYb7oZLlHTYho",
+  "S1-D2-3": "https://drive.google.com/drive/folders/1jrpBwYSx3ha8YSi9579O3EhKwV3Xf9zE",
+  "S1-D3-1": "https://drive.google.com/drive/folders/1xfwJ8bCg6loJYglRXZ5spNxbaNUmE5Ik",
+  "S1-D4-2": "https://drive.google.com/drive/folders/16lHiXGB1FdZU_9a0NOX4Ap20PLz8hJr5",
+  "S2-D0-1": "https://drive.google.com/drive/folders/1ydWx11Pc7cFzcMK_Ozv7bLAJAQd0LIdv",
+  "S2-D1-1": "https://drive.google.com/drive/folders/1oq0QdJeWgRmf8F_RtmexZ1IqGyzYGAza",
+  "S2-D2-1": "https://drive.google.com/drive/folders/1WQGbTisC5x8FdiV86cmIJSk1ViDxTvli",
+  "S2-D5-1": "https://drive.google.com/drive/folders/15hNcPquQopWhWKaNgGLfpESUfiVnq1Jp",
+  "S3-D0-1": "https://drive.google.com/drive/folders/1u8DOhdlERE645vYr2QJwIfCnulun311N",
+  "S3-D5-1": "https://drive.google.com/drive/folders/1fYMQlinfnTa4Z7ugDBGPfjCbIr0fOuGa",
+  "S4-D0-1": "https://drive.google.com/drive/folders/16tTuvosRHDT4WirdRq2hxjeom8eoo0J8",
+  "S4-D5-1": "https://drive.google.com/drive/folders/1KTJZtK-vkI76nXigF8vzKTYCDenSU-b5",
+  "S5-D0-1": "https://drive.google.com/drive/folders/1EsUhgt6ELdSjrNAoPiNCYYVj84Pw00RO",
+  "S6-D0-1": "https://drive.google.com/drive/folders/1lpJg54Ssd79V9_fkk_FldOmx-D7ali-3",
+  "S6-D6-1": "https://drive.google.com/drive/folders/1nU5gpcketvbRaqYOXDq77DIiN_35cY7j"
+};
+/* ═══════════════════════════════════════════════════════════════════════════ */
+
+const MENSAJES = [{"id":"S0-D6-1","semana":0,"dia":6,"diaNombre":"sábado","orden":1,"titulo":"Bienvenida","autor":"coach_grupo","adjunto":"Lámina de mercado (alimentos permitidos)","requiereAprobacion":false,"personalizada":false,"porConfirmar":false,"cuerpo":"Hola bella 🤍 soy Coach Majo, bienvenida. Aquí la constancia, disciplina y obediencia nos llevarán a tu meta. Vamos 1 día a la vez 💪🏼\nTe enviaré alimentos permitidos, material necesario e información clave.\n⚠️ Lee todo, de eso depende tu progreso.\nEstoy aquí para ayudarte, cualquier duda me escribes (Majo)"},{"id":"S0-D6-2","semana":0,"dia":6,"diaNombre":"sábado","orden":2,"titulo":"Cómo medir con taza","autor":"majo","adjunto":"Lámina de accesorios (tazas, cucharillas, balanza)","requiereAprobacion":false,"personalizada":false,"porConfirmar":false,"cuerpo":"Corazón también te envío las tazas y cucharillas medidoras para que te familiarices con las medidas… Las tazas normalmente las utilizamos para medir carbohidratos, las cucharillas para las grasas, y para las proteínas usamos la balanza de comida."},{"id":"S0-D6-3","semana":0,"dia":6,"diaNombre":"sábado","orden":3,"titulo":"Cómo tomar peso, medidas y fotos","autor":"zorayma","adjunto":"Video de cómo tomar medidas + video de fotos de progreso (links de Skool)","requiereAprobacion":false,"personalizada":false,"porConfirmar":false,"cuerpo":"Hola reina 🌸😊, soy Coach Zory. Quiero darte nuevamente la bienvenida a Son Hábitos 💕. Estoy aquí para apoyarte en lo que necesites, al igual que las chicas del grupo 🤗.\nA continuación te enviaré dos videos que te mostrarán cómo tomar tus medidas y tus fotos de progreso, las cuales necesitaremos semanalmente para comparar tus avances 📸💪🏻🥰.\nEl primer video te mostrará cómo tomar tus medidas y el segundo cómo realizar tus fotos de progreso. Si tienes alguna duda con la aplicación o con cualquiera de los pasos, déjame saber y con gusto te ayudo 🤗. ¡Estoy muy feliz de acompañarte! 🥰🌸"},{"id":"S1-D0-1","semana":1,"dia":0,"diaNombre":"domingo","orden":1,"titulo":"Reto 1: Pasos","autor":"coach_grupo","adjunto":"Lámina del Reto de Pasos","requiereAprobacion":false,"personalizada":false,"porConfirmar":false,"cuerpo":"Hola hermosa 💞💙 Bienvenida a Fase 1…\nA partir de hoy tendrás varios retos que te ayudarán a desarrollar hábitos que harán la diferencia en tus resultados, y este es uno de ellos 👟✨.\nNo veas los pasos como algo opcional. Quiero que los veas como una tarea diaria que forma parte de tu proceso de transformación. Cada paso suma, aumenta tu actividad física y ayuda a que tu cuerpo responda mejor al programa.\nTu objetivo no es competir con nadie, sino comprometerte contigo misma y cumplir cada meta propuesta para esta fase.\nAcepta el reto, registra tus pasos y demuestra que puedes cumplirlo 💃🔥. Recuerda: los resultados llegan más rápido cuando seguimos el plan completo 🫂❤️💪🏻"},{"id":"S1-D1-1","semana":1,"dia":1,"diaNombre":"lunes","orden":1,"titulo":"Cómo entender tu plan","autor":"majo","adjunto":"Video del plan (Loom) + lámina de estructura diaria + lámina de snacks","requiereAprobacion":false,"personalizada":false,"porConfirmar":false,"cuerpo":"Hola bella, te voy a pasar información de cómo entender tu plan, en un video corto de Naty explicándolo; es importante que lo veas. También te lo paso escrito para que visualmente te ayude a armar tus platos y se te haga más fácil. Adicional verás una hoja donde explicamos qué tipos de snack puedes consumir… Recuerda: SI NO ESTÁ EN EL PLAN NO SE COME 🫂💪🏻❤️"},{"id":"S1-D2-1","semana":1,"dia":2,"diaNombre":"martes","orden":1,"titulo":"Motivación y servicio","autor":"majo","adjunto":"Láminas con ejemplos de menús","requiereAprobacion":false,"personalizada":false,"porConfirmar":false,"cuerpo":"Hola bella, ¿cómo estás? Paso por aquí para saber cómo te sientes con tu plan. Si necesitas alguna ayuda, porfis házmelo saber, sin pena alguna ❤️🫂🫶🏻. Te voy a enviar unas láminas donde podrás ver ejemplos de cómo armar tus platos de comida."},{"id":"S1-D2-2","semana":1,"dia":2,"diaNombre":"martes","orden":2,"titulo":"Video de aceites","autor":"majo","adjunto":"Video de aceites","requiereAprobacion":false,"personalizada":false,"porConfirmar":true,"cuerpo":"Te dejo también este video sobre los aceites: cuáles usar, cuáles evitar y cómo medirlos. Es corto pero te va a aclarar muchas dudas a la hora de cocinar 🫂❤️"},{"id":"S1-D2-3","semana":1,"dia":2,"diaNombre":"martes","orden":3,"titulo":"Devocional","autor":"zorayma","adjunto":"Link del devocional","requiereAprobacion":false,"personalizada":false,"porConfirmar":false,"cuerpo":"Hola reina 🌸, quiero recordarte que cada día tienes disponible el devocional, un espacio pensado para fortalecer no solo tu proceso físico, sino también tu corazón y tu mente ✨. Te invito a escucharlo con atención y disposición. A veces, una sola palabra puede darte la perspectiva que necesitas para seguir avanzando con más intención y firmeza 💕. Aquí te dejo el enlace. Y si algo de lo que escuchas conecta contigo, estaré feliz de conversar contigo 🤗."},{"id":"S1-D3-1","semana":1,"dia":3,"diaNombre":"miércoles","orden":1,"titulo":"Mensaje del Flu (adaptación)","autor":"zorayma","adjunto":"Lámina del Flu","requiereAprobacion":false,"personalizada":false,"porConfirmar":false,"cuerpo":"Hola reina, te comparto esta lámina porque durante los primeros días del programa es normal que tu cuerpo pase por un proceso de adaptación. Recuerda que tu cuerpo está aprendiendo nuevos hábitos y adaptándose a cambios positivos. Por eso, es normal que puedas sentir un poco más de cansancio o algunos ajustes temporales. No te asustes si te sientes un poco diferente. Mantente hidratada, descansa y sigue el plan ✨. Cualquier duda o malestar, escríbeme. Estoy aquí para ayudarte 🥰."},{"id":"S1-D4-1","semana":1,"dia":4,"diaNombre":"jueves","orden":1,"titulo":"Pregunta de la mañana","autor":"coach_grupo","adjunto":null,"requiereAprobacion":false,"personalizada":false,"porConfirmar":false,"cuerpo":"Hola hermosa, ¿cómo estás? Cuéntame ¿cómo te ha ido en tus primeros días en el programa? ¿Estás logrando hacer tus pasos? 👣 ¿Hay algo en que te pueda ayudar para finalizar con éxito esta semana? 💪"},{"id":"S1-D4-2","semana":1,"dia":4,"diaNombre":"jueves","orden":2,"titulo":"Link de entrenamiento","autor":"majo","adjunto":"Link de entrenamiento con Coach Nati (Loom)","requiereAprobacion":false,"personalizada":false,"porConfirmar":false,"cuerpo":"Si pediste entrenamiento a coach Nati, aquí tienes el link para que sepas dónde encontrarlo en tu app y cómo usarlo. Si aún no lo has pedido, avísame para colocarlo en tu app; tienes la opción de escoger hacerlo en casa o en gym."},{"id":"S1-D5-1","semana":1,"dia":5,"diaNombre":"viernes","orden":1,"titulo":"Plantilla del fin de semana","autor":"majo","adjunto":null,"requiereAprobacion":false,"personalizada":false,"porConfirmar":false,"cuerpo":"Hola hermosa 🌸💕 ¡Llegó tu primer fin de semana! 🤍 Este es el momento donde muchas personas pierden el enfoque, pero tú puedes hacerlo diferente. Planifica tus comidas, sigue tu plan y, si vas a salir, busca siempre la mejor opción. Y recuerda: si tienes dudas, escríbeme antes de comer, no después 😊. Estoy aquí para ayudarte a que tengas un fin de semana exitoso. ¡Vamos paso a paso, estas 6 semanas pueden cambiar muchos hábitos para toda la vida! 💪💕"},{"id":"S2-D0-1","semana":2,"dia":0,"diaNombre":"domingo","orden":1,"titulo":"Reto 2: Hidratación","autor":"coach_grupo","adjunto":"Lámina del Reto de Hidratación","requiereAprobacion":false,"personalizada":false,"porConfirmar":false,"cuerpo":"Hola hermosa 💞💙 Este es el segundo reto que quiero que asumas durante tu proceso en Fase 1: La Hidratación 💧✨. Así como cumplimos nuestras comidas, también necesitamos cumplir nuestra meta diaria de agua. No es un detalle pequeño; una buena hidratación ayuda a controlar el hambre, mejora tu energía, favorece la digestión y permite que tu cuerpo responda mejor al programa.\n👉🏻 Te invito a tomar este reto con compromiso y a esforzarte por completar la meta correspondiente a cada día. Cada vaso cuenta y cada día que lo cumples estás fortaleciendo un hábito que te acompañará mucho más allá de esta fase. ¡Acepta el reto y cuando completes tu meta, comparte tu gotita en el chat! 💧🫂❤️💪🏻"},{"id":"S2-D1-1","semana":2,"dia":1,"diaNombre":"lunes","orden":1,"titulo":"Cómo dividir tus porciones","autor":"majo","adjunto":"Lámina de cómo dividir porciones","requiereAprobacion":false,"personalizada":false,"porConfirmar":true,"cuerpo":"Hola bella 🌸 te dejo esta lámina de cómo dividir tus porciones. Tenla a mano a la hora de servirte: te va a hacer mucho más fácil armar el plato sin pensarlo tanto 💪🏻❤️"},{"id":"S2-D2-1","semana":2,"dia":2,"diaNombre":"martes","orden":1,"titulo":"Link de Gaby (apoyo emocional)","autor":"zorayma","adjunto":"Link del grupo de apoyo de Gaby","requiereAprobacion":false,"personalizada":false,"porConfirmar":true,"cuerpo":"Hola reina 🌸 quiero contarte de un espacio muy lindo que tenemos con Gaby: un grupo de apoyo emocional para acompañarte en el proceso, porque esto no es solo el cuerpo 🤍. Son los lunes a las 7:30 pm y los viernes a las 11:00 am (hora Miami). Los cupos son limitados, así que si te interesa avísame 🤗."},{"id":"S2-D5-1","semana":2,"dia":5,"diaNombre":"viernes","orden":1,"titulo":"Cómo ordenar en un restaurante","autor":"majo","adjunto":"Láminas de cómo ordenar en un restaurante","requiereAprobacion":false,"personalizada":false,"porConfirmar":false,"cuerpo":"Hola hermosa 🌸💕 ¡Ya estás en tu segunda semana! 🤍 Te envío esta guía para que sepas exactamente qué pedir en un restaurante si estás fuera de casa y así disfrutes sin sentir culpa ni afectar tu plan 😊. Y recuerda: si el menú te genera dudas, envíamelo antes de ordenar. Estoy aquí para ayudarte a tomar la mejor decisión. ¡Sigamos sumando pequeñas victorias! Cada buena elección te acerca más a tu meta 💪💕"},{"id":"S3-D0-1","semana":3,"dia":0,"diaNombre":"domingo","orden":1,"titulo":"Reto 3: Cardio","autor":"coach_grupo","adjunto":"Lámina del Reto de Cardio","requiereAprobacion":false,"personalizada":false,"porConfirmar":false,"cuerpo":"Hola hermosa 💞💙 Quiero presentarte otro de los retos de Fase 1: El Cardio 🏃‍♀️✨. Muchas veces pensamos que los resultados dependen solo de la alimentación, pero la realidad es que el movimiento también juega un papel importante. Por eso quiero que veas este reto como parte de tu compromiso con el programa y no como algo opcional.\nNo importa cuál de las opciones elijas, lo importante es cumplir con la frecuencia y el tiempo que te corresponde. Cada sesión de cardio ayuda a mejorar tu condición física, aumentar tu gasto energético y fortalecer hábitos que te acompañarán a largo plazo.\nRecuerda: no buscamos perfección, buscamos constancia. Cumple tu reto, registra tus avances y demuestra que estás comprometida con tus resultados 💃🔥. ¡Vamos por una versión más fuerte, saludable y disciplinada de ti! 🫂💪🏻❤️"},{"id":"S3-D3-1","semana":3,"dia":3,"diaNombre":"miércoles","orden":1,"titulo":"Mensaje de medio camino","autor":"coach_grupo","adjunto":null,"requiereAprobacion":true,"personalizada":false,"porConfirmar":false,"cuerpo":"Hola bella, ¿cómo estás? Es increíble cómo pasa el tiempo, ya estamos en la 3ª semana de esta primera fase… Me gustaría saber si necesitas ayuda para que logres cumplir tu meta… Avísame cualquier cosa ❤️🫂👍"},{"id":"S3-D5-1","semana":3,"dia":5,"diaNombre":"viernes","orden":1,"titulo":"Cómo prepararte para viajar","autor":"majo","adjunto":"Lámina de cómo prepararte para viajar","requiereAprobacion":false,"personalizada":false,"porConfirmar":false,"cuerpo":"Hola hermosa 💖 aquí te envío información importante de CÓMO PREPARARTE PARA VIAJAR. Sé que la puedes utilizar en cualquier momento y es preferible estar preparadas… abrazo 🫂❤️💪🏻"},{"id":"S4-D0-1","semana":4,"dia":0,"diaNombre":"domingo","orden":1,"titulo":"Reto 4: Sabores Verdes","autor":"coach_grupo","adjunto":"Lámina del Reto de Sabores Verdes","requiereAprobacion":false,"personalizada":false,"porConfirmar":false,"cuerpo":"Hola hermosa 💞💙 Este reto tiene un objetivo muy especial: ayudarte a descubrir que los vegetales verdes pueden ser mucho más ricos y variados de lo que imaginas 🥦✨. Durante esta semana quiero que te desafíes a probar nuevas formas de prepararlos, combinarlos y disfrutarlos. Recuerda que no se trata solo de cumplir una cantidad, sino de aprender a incluirlos en tu estilo de vida de una manera que realmente disfrutes 💃🔥. Mientras más opciones encuentres que te gusten, más fácil será mantener este hábito a largo plazo y mejores serán tus resultados dentro del programa. Acepta el reto, ponte creativa en la cocina y comparte tus mejores ideas con el grupo. ¡Quizás tu receta inspire a otra compañera! 💚🌱 Los hábitos que duran son los que aprendemos a disfrutar 🫂💪❤️"},{"id":"S4-D5-1","semana":4,"dia":5,"diaNombre":"viernes","orden":1,"titulo":"Mensaje de 4ta semana","autor":"majo","adjunto":"Foto comparativa de la clienta (una distinta para cada una)","requiereAprobacion":true,"personalizada":true,"porConfirmar":false,"cuerpo":"Hola corazón, ¿cómo estás? 🫂 ¡Sabes que ya nos quedan 2 semanas! 🥳🥳 Y quiero recordarte que uses todas las herramientas que te hemos dado para que alcances tus metas 😍💃😋:\n• Sigue el plan al pie de la letra.\n• Comparte y participa en el chat.\n• Realiza tus 10.000 pasos al día.\nVAMOS POR MÁS… 🫂❤️💪🏻\n¿Hay algo en lo que pueda ayudarte para cerrar este nivel con broche de oro? 💃🏼"},{"id":"S5-D0-1","semana":5,"dia":0,"diaNombre":"domingo","orden":1,"titulo":"Reto 5: Higiene del Sueño","autor":"coach_grupo","adjunto":"Lámina del Reto de Higiene del Sueño","requiereAprobacion":false,"personalizada":false,"porConfirmar":false,"cuerpo":"Hola hermosa 💞💙 Hoy quiero compartir contigo uno de los retos más importantes de Fase 1 y muchas veces uno de los más olvidados: El Descanso 😴✨. Dormir bien no solo te ayuda a sentirte con más energía al día siguiente. También ayuda a controlar la ansiedad, mejorar la recuperación de tu cuerpo, fortalecer tus hábitos y favorecer mejores resultados dentro del programa 💃🔥. Tu cuerpo necesita descansar para poder transformarse. Esta semana enfócate en mejorar poco a poco tu rutina de sueño y comprométete a cumplir este reto. 🌛 Recuerda que muchas veces los resultados no dependen de hacer más, sino de recuperarte mejor. ¡Acepta el reto y regálale a tu cuerpo el descanso que merece! 🫂💪❤️"},{"id":"S5-D5-1","semana":5,"dia":5,"diaNombre":"viernes","orden":1,"titulo":"Plantilla de Pedir Ayuda","autor":"zorayma","adjunto":null,"requiereAprobacion":true,"personalizada":false,"porConfirmar":false,"cuerpo":"Hola reina 🌸 ¡Ya llegaste a la semana 5! 🤍 Quiero felicitarte porque has recorrido un gran camino. Ahora viene una parte muy importante: no te quedes con las dudas ni luches sola. Si algo se te está haciendo difícil, si sientes desánimo o simplemente necesitas orientación, escríbeme. Estoy aquí para acompañarte y ayudarte a terminar esta fase con éxito. Mi mayor deseo es verte completar estas 6 semanas y avanzar a nuestra siguiente etapa VIP con seguridad y confianza. ¡Vamos por esa última semana! Estoy contigo 💕"},{"id":"S6-D0-1","semana":6,"dia":0,"diaNombre":"domingo","orden":1,"titulo":"Reto 6: Día Balanceado","autor":"coach_grupo","adjunto":"Lámina del Reto de Día Balanceado","requiereAprobacion":false,"personalizada":false,"porConfirmar":false,"cuerpo":"Hola hermosa 💞💙 Durante las últimas semanas te he compartido varios retos porque quiero que entiendas algo muy importante: los resultados no vienen de una sola acción, sino de la suma de pequeños hábitos que repetimos cada día ✨. Este \"Día Balanceado\" reúne todo lo que hemos trabajado: pasos, hidratación, cardio, vegetales verdes y descanso. Cuando logras cumplir estas áreas en un mismo día, le estás dando a tu cuerpo las herramientas necesarias para avanzar hacia tus metas. No busques hacerlo perfecto. Busca hacerlo consistente, porque todo el esfuerzo que hagas cuenta 👣💧🚴‍♀️🥒😴. Tu reto ahora es intentar acumular la mayor cantidad posible de días balanceados durante tu proceso. Porque los grandes resultados son simplemente muchos días buenos repetidos una y otra vez 💃🔥. Cuando completes tu día balanceado, compártelo con orgullo. ¡Estarás demostrando que estás construyendo hábitos que pueden acompañarte para toda la vida! 🫂💪❤️"},{"id":"S6-D6-1","semana":6,"dia":6,"diaNombre":"sábado","orden":1,"titulo":"Canva de mantenimiento (graduadas)","autor":"majo","adjunto":"Canva de mantenimiento","requiereAprobacion":true,"personalizada":false,"porConfirmar":false,"cuerpo":"Hola hermosa, ¿cómo estás? Aquí te paso esta valiosa información sobre tu siguiente etapa… Esta nueva fase no se trata solo de mantener un resultado… se trata de demostrar que ya no eres la misma persona que empezó hace semanas. Sigue confiando en el proceso, sin extremos y sin afán. Lo que construye cambios reales no es hacerlo perfecto un día, es sostenerlo con intención todos los días."}];
+const CLAVE = 'fase1-revision-v1';
+
+const guardado = JSON.parse(localStorage.getItem(CLAVE) || '{}');
+const estado = {};
+MENSAJES.forEach((m) => {
+  const g = guardado[m.id] || {};
+  estado[m.id] = {
+    cuerpo: typeof g.cuerpo === 'string' ? g.cuerpo : m.cuerpo,
+    comentario: g.comentario || '',
+    ok: !!g.ok,
+  };
+});
+
+const guardar = () => localStorage.setItem(CLAVE, JSON.stringify(estado));
+
+const AUTOR = { coach_grupo: 'La coach del chat', majo: 'Majo', zorayma: 'Zorayma' };
+const semanaTitulo = (s) => (s === 0 ? 'Antes de arrancar' : 'Semana ' + s);
+const mayus = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+
+/* Los <textarea> crecen con el texto: en el celular nadie quiere una barra de scroll dentro de otra. */
+function crecer(ta) {
+  ta.style.height = 'auto';
+  ta.style.height = ta.scrollHeight + 'px';
+}
+
+function pintar() {
+  const lista = document.getElementById('lista');
+  let semanaActual = null;
+
+  MENSAJES.forEach((m) => {
+    if (m.semana !== semanaActual) {
+      semanaActual = m.semana;
+      const h = document.createElement('div');
+      h.className = 'week';
+      h.textContent = semanaTitulo(m.semana);
+      lista.append(h);
+    }
+
+    const card = document.createElement('section');
+    card.className = 'card';
+    card.dataset.id = m.id;
+
+    const meta = document.createElement('div');
+    meta.className = 'meta';
+    meta.innerHTML =
+      '<span class="day">' + mayus(m.diaNombre) + '</span>' +
+      '<span class="dot"></span><span>' + AUTOR[m.autor] + '</span>';
+    if (m.porConfirmar) meta.innerHTML += '<span class="tag">¿este va?</span>';
+    if (m.personalizada) meta.innerHTML += '<span class="tag">foto de cada clienta</span>';
+    card.append(meta);
+
+    const h2 = document.createElement('h2');
+    h2.textContent = m.titulo;
+    card.append(h2);
+
+    const cuerpoBox = document.createElement('div');
+    const lblC = document.createElement('span');
+    lblC.className = 'label';
+    lblC.textContent = 'Mensaje';
+    const ta = document.createElement('textarea');
+    ta.className = 'cuerpo';
+    ta.value = estado[m.id].cuerpo;
+    ta.addEventListener('input', () => {
+      estado[m.id].cuerpo = ta.value;
+      crecer(ta);
+      guardar();
+      marcaEditado(card, m);
+    });
+    cuerpoBox.append(lblC, ta);
+    card.append(cuerpoBox);
+
+    if (m.adjunto) {
+      const adj = document.createElement('div');
+      adj.className = 'adjunto';
+      const txt = document.createElement('div');
+      txt.className = 'adjunto-txt';
+      txt.innerHTML = 'Va con: <b>' + m.adjunto + '</b>';
+      const btn = document.createElement('a');
+      btn.className = 'subir';
+      const url = CARPETAS[m.id];
+      if (url) {
+        btn.href = url;
+        btn.target = '_blank';
+        btn.rel = 'noopener';
+        btn.textContent = 'Subir la lámina';
+      } else {
+        btn.href = '#';
+        btn.setAttribute('aria-disabled', 'true');
+        btn.textContent = 'Carpeta aún no lista';
+      }
+      adj.append(txt, btn);
+      card.append(adj);
+    }
+
+    const btnOk = document.createElement('button');
+    btnOk.className = 'aprobar';
+    btnOk.type = 'button';
+    btnOk.setAttribute('aria-pressed', String(estado[m.id].ok));
+    btnOk.textContent = estado[m.id].ok ? 'Aprobado ✓' : 'Está bien ✓';
+    btnOk.addEventListener('click', () => {
+      estado[m.id].ok = !estado[m.id].ok;
+      btnOk.setAttribute('aria-pressed', String(estado[m.id].ok));
+      btnOk.textContent = estado[m.id].ok ? 'Aprobado ✓' : 'Está bien ✓';
+      card.classList.toggle('ok', estado[m.id].ok);
+      guardar();
+      progreso();
+    });
+    card.classList.toggle('ok', estado[m.id].ok);
+    card.append(btnOk);
+
+    const comBox = document.createElement('div');
+    const lblCom = document.createElement('span');
+    lblCom.className = 'label';
+    lblCom.textContent = 'Comentario (opcional)';
+    const com = document.createElement('textarea');
+    com.className = 'comentario';
+    com.rows = 1;
+    com.placeholder = '¿Algo que quieras decirle a Jhon sobre este mensaje?';
+    com.value = estado[m.id].comentario;
+    com.addEventListener('input', () => {
+      estado[m.id].comentario = com.value;
+      crecer(com);
+      guardar();
+    });
+    comBox.append(lblCom, com);
+    card.append(comBox);
+
+    lista.append(card);
+    crecer(ta);
+    crecer(com);
+    marcaEditado(card, m);
+  });
+}
+
+function marcaEditado(card, m) {
+  const previo = card.querySelector('.edited');
+  if (previo) previo.remove();
+  if (estado[m.id].cuerpo.trim() !== m.cuerpo.trim()) {
+    const aviso = document.createElement('div');
+    aviso.className = 'edited';
+    aviso.textContent = 'Texto cambiado';
+    card.querySelector('h2').after(aviso);
+  }
+}
+
+function progreso() {
+  const total = MENSAJES.length;
+  const ok = MENSAJES.filter((m) => estado[m.id].ok).length;
+  document.getElementById('n-ok').textContent = ok;
+  document.getElementById('n-total').textContent = total;
+  document.getElementById('fill').style.width = (ok / total) * 100 + '%';
+  document.getElementById('n-falta').textContent =
+    ok === total ? '¡Listo! 🎉' : 'faltan ' + (total - ok);
+}
+
+function resumen() {
+  const fecha = new Date().toLocaleDateString('es', { day: 'numeric', month: 'long' });
+  let t = 'REVISIÓN DE MENSAJES — FASE 1 (' + fecha + ')\n\n';
+  const ok = MENSAJES.filter((m) => estado[m.id].ok).length;
+  t += 'Aprobados: ' + ok + ' de ' + MENSAJES.length + '\n';
+
+  const cambios = MENSAJES.filter(
+    (m) => estado[m.id].cuerpo.trim() !== m.cuerpo.trim() || estado[m.id].comentario.trim()
+  );
+  const sinRevisar = MENSAJES.filter((m) => !estado[m.id].ok);
+
+  if (!cambios.length) {
+    t += '\nSin cambios en los textos.\n';
+  } else {
+    t += '\n──────────\nCAMBIOS\n──────────\n';
+    cambios.forEach((m) => {
+      t += '\n▸ ' + semanaTitulo(m.semana) + ' · ' + mayus(m.diaNombre) + ' · ' + m.titulo + '\n';
+      t += '  [' + m.id + ']\n';
+      if (estado[m.id].cuerpo.trim() !== m.cuerpo.trim()) {
+        t += '  TEXTO NUEVO:\n  ' + estado[m.id].cuerpo.trim().replace(/\n/g, '\n  ') + '\n';
+      }
+      if (estado[m.id].comentario.trim()) {
+        t += '  COMENTARIO: ' + estado[m.id].comentario.trim() + '\n';
+      }
+    });
+  }
+
+  if (sinRevisar.length) {
+    t += '\n──────────\nTODAVÍA SIN REVISAR\n──────────\n';
+    sinRevisar.forEach((m) => {
+      t += '· ' + semanaTitulo(m.semana) + ' · ' + m.titulo + '\n';
+    });
+  }
+  return t;
+}
+
+document.getElementById('btn-enviar').addEventListener('click', async () => {
+  const texto = resumen();
+  const aviso = document.getElementById('aviso');
+  const decir = (s) => {
+    aviso.textContent = s;
+    setTimeout(() => (aviso.textContent = ''), 3000);
+  };
+
+  if (navigator.share) {
+    try {
+      await navigator.share({ text: texto });
+      return;
+    } catch (e) {
+      if (e && e.name === 'AbortError') return;
+    }
+  }
+  try {
+    await navigator.clipboard.writeText(texto);
+    decir('Copiado ✓ — pégalo en el chat de Jhon');
+  } catch {
+    const caja = document.getElementById('salida');
+    caja.style.display = 'block';
+    const ta = document.getElementById('salida-txt');
+    ta.value = texto;
+    ta.select();
+    caja.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    decir('Copia el texto de abajo');
+  }
+});
+
+pintar();
+progreso();
+</script>
